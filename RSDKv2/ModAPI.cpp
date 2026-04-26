@@ -11,7 +11,7 @@ char modsPath[0x100];
 #if RETRO_PLATFORM == RETRO_ANDROID
 namespace fs = std::__fs::filesystem;
 #else
-namespace fs = std::filesystem;
+namespace fs = std::__fs::filesystem;
 #endif
 
 fs::path ResolvePath(fs::path given) {
@@ -38,7 +38,7 @@ void InitMods() {
     modList.clear();
 
     char modBuf[0x100];
-    sprintf(modBuf, "%smods", modsPath);
+    sprintf(modBuf, "%s/mods", modsPath);
     fs::path modPath = ResolvePath(modBuf);
 
     if (fs::exists(modPath) && fs::is_directory(modPath)) {
@@ -151,7 +151,7 @@ void ScanModFolder(ModInfo *info) {
         return;
 
     char modBuf[0x100];
-    sprintf(modBuf, "%smods", modsPath);
+    sprintf(modBuf, "%s/mods", modsPath);
 
     fs::path modPath = ResolvePath(modBuf);
 
@@ -256,7 +256,7 @@ void ScanModFolder(ModInfo *info) {
 
 void SaveMods() {
     char modBuf[0x100];
-    sprintf(modBuf, "%smods", modsPath);
+    sprintf(modBuf, "%s/mods", modsPath);
     fs::path modPath = ResolvePath(modBuf);
 
     if (fs::exists(modPath) && fs::is_directory(modPath)) {

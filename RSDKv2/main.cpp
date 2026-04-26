@@ -1,7 +1,9 @@
 #include "RetroEngine.hpp"
+#include <SDL.h>
+
+#define LOGD(...) SDL_Log(__VA_ARGS__)
 
 #if !RETRO_USE_ORIGINAL_CODE
-
 #if RETRO_PLATFORM == RETRO_WIN && _MSC_VER
 #include "Windows.h"
 #endif
@@ -9,7 +11,6 @@
 void parseArguments(int argc, char *argv[]) {
     for (int a = 0; a < argc; ++a) {
         const char *find = "";
-
         find = strstr(argv[a], "stage=");
         if (find) {
             int b = 0;
@@ -17,7 +18,6 @@ void parseArguments(int argc, char *argv[]) {
             while (find[c] && find[c] != ';') Engine.startSceneFolder[b++] = find[c++];
             Engine.startSceneFolder[b] = 0;
         }
-
         find = strstr(argv[a], "scene=");
         if (find) {
             int b = 0;
@@ -25,7 +25,6 @@ void parseArguments(int argc, char *argv[]) {
             while (find[c] && find[c] != ';') Engine.startSceneID[b++] = find[c++];
             Engine.startSceneID[b] = 0;
         }
-
         find = strstr(argv[a], "console=true");
         if (find) {
             engineDebugMode       = true;
@@ -38,7 +37,6 @@ void parseArguments(int argc, char *argv[]) {
             freopen_s((FILE **)stderr, "CONOUT$", "w", stderr);
 #endif
         }
-
         find = strstr(argv[a], "usingCWD=true");
         if (find) {
             usingCWD = true;
@@ -49,13 +47,20 @@ void parseArguments(int argc, char *argv[]) {
 
 int main(int argc, char *argv[])
 {
+    LOGD("RSDKv2 main() starting...");
+    
 #if !RETRO_USE_ORIGINAL_CODE
     parseArguments(argc, argv);
 #endif
 
+    LOGD("Calling Engine.Init()...");
     Engine.Init();
+    
+    LOGD("Engine.Init() completed, calling Engine.Run()...");
     Engine.Run();
-
+    
+    LOGD("Engine.Run() completed, exiting normally");
+    
 #if !RETRO_USE_ORIGINAL_CODE
     if (Engine.consoleEnabled) {
 #if RETRO_PLATFORM == RETRO_WIN && _MSC_VER
@@ -63,6 +68,6 @@ int main(int argc, char *argv[])
 #endif
     }
 #endif
-
+    
     return 0;
 }

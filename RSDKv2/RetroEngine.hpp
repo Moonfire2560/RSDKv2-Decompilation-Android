@@ -75,7 +75,9 @@ typedef unsigned int uint;
 #error "Unknown Apple platform"
 #endif
 #else
+#ifndef RETRO_PLATFORM
 #define RETRO_PLATFORM (RETRO_WIN) // Default
+#endif
 #endif
 
 #if RETRO_PLATFORM == RETRO_UWP
@@ -83,14 +85,16 @@ typedef unsigned int uint;
 #define DEFAULT_SCREEN_XSIZE 320
 #define DEFAULT_FULLSCREEN   false
 #else
+#ifndef BASE_PATH
 #define BASE_PATH ""
+#endif
 #define RETRO_USING_MOUSE
 #define RETRO_USING_TOUCH
 #define DEFAULT_SCREEN_XSIZE 320
 #define DEFAULT_FULLSCREEN   false
 #endif
 
-#if RETRO_PLATFORM == RETRO_WIN || RETRO_PLATFORM == RETRO_OSX || RETRO_PLATFORM == RETRO_iOS || RETRO_PLATFORM == RETRO_UWP
+#if RETRO_PLATFORM == RETRO_WIN || RETRO_PLATFORM == RETRO_OSX || RETRO_PLATFORM == RETRO_iOS || RETRO_PLATFORM == RETRO_UWP || RETRO_PLATFORM == RETRO_ANDROID
 #define RETRO_USING_SDL1 (0)
 #define RETRO_USING_SDL2 (1)
 #else // Since its an else & not an elif these platforms probably aren't supported yet
@@ -126,6 +130,9 @@ enum RetroStates {
 #include <vorbis/vorbisfile.h>
 
 #include "cocoaHelpers.hpp"
+#elif RETRO_PLATFORM == RETRO_ANDROID
+#include <SDL.h>
+#include <vorbis/vorbisfile.h>
 #endif
 
 extern bool usingCWD;

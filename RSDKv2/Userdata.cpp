@@ -23,7 +23,7 @@ void InitUserdata()
 #elif RETRO_PLATFORM == RETRO_iOS
     sprintf(buffer, "%s/settings.ini", getDocumentsPath());
 #else
-    sprintf(buffer, BASE_PATH"settings.ini");
+    sprintf(buffer, BASE_PATH"/settings.ini");
 #endif
     FileIO *file = fOpen(buffer, "rb");
     IniParser ini;
@@ -95,11 +95,11 @@ void InitUserdata()
         ini.SetInteger("Controller 1", "Start", inputDevice[INPUT_START].contMappings = 8);
 #endif
 
-        ini.Write(BASE_PATH"settings.ini");
+        ini.Write(BASE_PATH"/settings.ini");
     }
     else {
         fClose(file);
-        ini = IniParser(BASE_PATH"settings.ini");
+        ini = IniParser(BASE_PATH"/settings.ini");
 
         if (!ini.GetBool("Dev", "DevMenu", &Engine.devMenu))
             Engine.devMenu = false;
@@ -328,5 +328,5 @@ void WriteSettings() {
     ini.SetInteger("Controller 1", "C", inputDevice[INPUT_BUTTONC].contMappings);
     ini.SetInteger("Controller 1", "Start", inputDevice[INPUT_START].contMappings);
 
-    ini.Write(BASE_PATH"settings.ini");
+    ini.Write(BASE_PATH"/settings.ini");
 }

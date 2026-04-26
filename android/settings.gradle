@@ -1,0 +1,2 @@
+rootProject.name = 'RSDKv2'
+include ':app'

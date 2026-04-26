@@ -1,5 +1,6 @@
 #include "RetroEngine.hpp"
 #include <string>
+#include <SDL.h>
 
 char binFileName[0x400];
 
@@ -16,26 +17,32 @@ byte isModdedFile = false;
 FileIO *CFileHandle = nullptr;
 
 bool CheckBinFile(const char *filePath) {
+    SDL_Log("CheckBinFile: RETRO_PLATFORM=%d, RETRO_ANDROID=%d", RETRO_PLATFORM, RETRO_ANDROID);
     FileInfo info;
-
     Engine.UseBinFile         = false;
     Engine.usingDataFileStore = false;
-
-    CFileHandle = fOpen(filePath, "rb");
+    
+    // Use path as-is (it's already been prepended in RetroEngine.cpp)
+    char fullPath[0x200];
+    strcpy(fullPath, filePath);
+    SDL_Log("CheckBinFile: Looking for data file at: %s", fullPath);
+    
+    CFileHandle = fOpen(fullPath, "rb");
     if (CFileHandle) {
         Engine.UseBinFile = true;
-        StrCopy(binFileName, filePath);
+        StrCopy(binFileName, fullPath);
         fClose(CFileHandle);
         CFileHandle = NULL;
+        SDL_Log("CheckBinFile: Successfully found data file!");
         return true;
     } else {
         Engine.UseBinFile = false;
         CFileHandle       = NULL;
+        SDL_Log("CheckBinFile: FAILED to find data file at %s", fullPath);
         return false;
     }
-
-    return false;
 }
+
 
 inline bool ends_with(std::string const &value, std::string const &ending) {
     if (ending.size() > value.size())
@@ -94,6 +101,16 @@ bool LoadFile(const char *filePath, FileInfo *fileInfo) {
         char pathBuf[0x100];
         sprintf(pathBuf, "%s/%s", gamePath, filePathBuf);
         sprintf(filePathBuf, "%s", pathBuf);
+    }
+#elif RETRO_PLATFORM == RETRO_ANDROID
+    if (addPath) {
+        char pathBuf[0x100];
+        SDL_Log("LoadFile: Adding BASE_PATH to '%s'", filePathBuf);
+        sprintf(pathBuf, "%s/%s", BASE_PATH, filePathBuf);
+        sprintf(filePathBuf, "%s", pathBuf);
+        SDL_Log("LoadFile: Full path now: '%s'", filePathBuf);
+    } else {
+        SDL_Log("LoadFile: NOT adding path (addPath=false) for '%s'", filePathBuf);
     }
 #endif
 

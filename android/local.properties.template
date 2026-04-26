@@ -1,0 +1,23 @@
+## This file must *NOT* be checked into Version Control Systems,
+# as it contains information specific to your local configuration.
+#
+# Location of the SDK. This is only used by Gradle.
+# For customization when using a Version Control System, please read the
+# header note.
+#
+# You need to set these paths for your system:
+
+# Android SDK location
+sdk.dir=C\:\\Users\\YourUsername\\AppData\\Local\\Android\\Sdk
+# Or on Mac/Linux:
+# sdk.dir=/Users/YourUsername/Library/Android/sdk
+# sdk.dir=/home/youruser/Android/Sdk
+
+# NDK location (if different from SDK)
+ndk.dir=C\:\\Users\\YourUsername\\AppData\\Local\\Android\\Sdk\\ndk\\22.1.7171670
+# Or on Mac/Linux:
+# ndk.dir=/Users/YourUsername/Library/Android/sdk/ndk/22.1.7171670
+# ndk.dir=/home/youruser/Android/Sdk/ndk/22.1.7171670
+
+# CMake location (optional, usually auto-detected)
+# cmake.dir=C\:\\Users\\YourUsername\\AppData\\Local\\Android\\Sdk\\cmake\\3.22.1

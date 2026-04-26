@@ -192,9 +192,24 @@ bool processEvents() {
 #endif
                 }
 #if RETRO_USING_SDL1
-                keyState[Engine.sdlEvents.key.keysym.sym] = 0;
+keyState[Engine.sdlEvents.key.keysym.sym] = 0;
 #endif
                 break;
+#if RETRO_USING_SDL2
+            case SDL_CONTROLLERBUTTONDOWN:
+                if (Engine.sdlEvents.cbutton.button == SDL_CONTROLLER_BUTTON_BACK) {
+                    // Select/Back button pressed - same as ESC
+                    if (Engine.devMenu) {
+#if RETRO_USE_MOD_LOADER
+                        if (Engine.GameMode == ENGINE_SYSMENU && StageMode == DEVMENU_MODMENU) {
+                            RefreshEngine();
+                        }
+#endif
+                        Engine.GameMode = ENGINE_INITSYSMENU;
+                    }
+                }
+                break;
+#endif
             case SDL_QUIT: Engine.GameMode = ENGINE_EXITGAME; return false;
         }
     }
@@ -203,13 +218,21 @@ bool processEvents() {
 }
 
 void RetroEngine::Init() {
+    SDL_Log("Init: Starting initialization...");
+    
     CalculateTrigAngles();
+    SDL_Log("Init: Calculated trig angles");
+    
 #if !RETRO_USE_ORIGINAL_CODE
     InitUserdata();
+    SDL_Log("Init: Initialized userdata");
 #endif
+
 #if RETRO_USE_MOD_LOADER
     InitMods();
+    SDL_Log("Init: Initialized mods");
 #endif
+
     char dest[0x200];
 #if RETRO_PLATFORM == RETRO_UWP
     static char resourcePath[256] = { 0 };
@@ -226,27 +249,51 @@ void RetroEngine::Init() {
     strcat(dest, Engine.dataFile);
 #else
     StrCopy(dest, BASE_PATH);
+    StrAdd(dest, "/");
     StrAdd(dest, Engine.dataFile);
 #endif
+
+    SDL_Log("Init: Checking for data file at: %s", dest);
     CheckBinFile(dest);
 
+    SDL_Log("Init: Setting initial GameMode to EXITGAME");
     GameMode = ENGINE_EXITGAME;
     GameRunning  = false;
+    
+    SDL_Log("Init: Loading GameConfig...");
     if (LoadGameConfig("Data/Game/GameConfig.bin")) {
+        SDL_Log("Init: GameConfig loaded successfully");
+        
+        SDL_Log("Init: Initializing render device...");
         if (InitRenderDevice()) {
+            SDL_Log("Init: Render device initialized");
+            
+            SDL_Log("Init: Initializing sound device...");
             if (InitSoundDevice()) {
+                SDL_Log("Init: Sound device initialized");
+                
+                SDL_Log("Init: Initializing system menu...");
                 InitSystemMenu();
                 ClearScriptData();
                 initialised = true;
                 GameRunning     = true;
+                SDL_Log("Init: Initialization complete! GameRunning = true");
+            } else {
+                SDL_Log("Init: FAILED to initialize sound device");
             }
+        } else {
+            SDL_Log("Init: FAILED to initialize render device");
         }
+    } else {
+        SDL_Log("Init: FAILED to load GameConfig.bin");
     }
 
     // Calculate Skip frame
     int lower        = getLowerRate(targetRefreshRate, refreshRate);
     renderFrameIndex = targetRefreshRate / lower;
     skipFrameIndex   = refreshRate / lower;
+    
+    SDL_Log("Init: Final GameRunning state = %d", GameRunning);
 }
 
 void RetroEngine::Run() {
@@ -314,6 +361,10 @@ bool RetroEngine::LoadGameConfig(const char *filePath) {
     char data[0x40];
     char strBuf[0x80];
     byte strLen = 0;
+
+char fullPath[0x200];
+sprintf(fullPath, "/sdcard/RSDK/v2/%s", filePath);
+SDL_Log("LoadGameConfig: Trying to load from: %s", fullPath);
 
     if (LoadFile(filePath, &info)) {
         FileRead(&fileBuffer, 1);

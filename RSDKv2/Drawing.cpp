@@ -36,9 +36,19 @@ int InitRenderDevice() {
     byte flags      = 0;
     Engine.window   = SDL_CreateWindow(gameTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_XSIZE * Engine.windowScale,
                                        SCREEN_YSIZE * Engine.windowScale, SDL_WINDOW_ALLOW_HIGHDPI | flags);
-    Engine.renderer = SDL_CreateRenderer(Engine.window, -1, SDL_RENDERER_ACCELERATED);
+Engine.renderer = SDL_CreateRenderer(Engine.window, -1, SDL_RENDERER_ACCELERATED);
 
-    if (!Engine.window) {
+// Add these lines:
+SDL_RendererInfo info;
+if (SDL_GetRendererInfo(Engine.renderer, &info) == 0) {
+    SDL_Log("Renderer: %s", info.name);
+    SDL_Log("Max Texture Size: %dx%d", info.max_texture_width, info.max_texture_height);
+    SDL_Log("Flags: %s", (info.flags & SDL_RENDERER_ACCELERATED) ? "ACCELERATED" : "SOFTWARE");
+} else {
+    SDL_Log("Failed to get renderer info");
+}
+
+if (!Engine.window) {
         PrintLog("ERROR: failed to create window!");
         Engine.GameMode = ENGINE_EXITGAME;
         return 0;
