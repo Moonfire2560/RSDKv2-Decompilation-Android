@@ -11,8 +11,8 @@ android {
         applicationId "com.rsdkmodding.rsdkv2"
         minSdk 16
         targetSdk 33
-        versionCode 1
-        versionName "1.0"
+        versionCode 2        //Update to v1.0.1
+        versionName "1.0.1"  //Update to v1.0.1
 
 ndk {
     abiFilters 'armeabi-v7a', 'arm64-v8a'
