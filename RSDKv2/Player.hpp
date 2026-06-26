@@ -1,7 +1,7 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#define PLAYER_COUNT (0x2)
+#define PLAYER_COUNT (0x4) //Fixes the crash that prevemnted the Tails and Knuckles mod (https://gamebanana.com/mods/398410) unplayable
 
 enum PlayerAni {
     ANI_STOPPED,
