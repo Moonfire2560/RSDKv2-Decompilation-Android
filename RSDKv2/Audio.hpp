@@ -67,6 +67,7 @@ extern int CurrentMusicTrack;
 extern int sfxVolume;
 extern int bgmVolume;
 extern bool audioEnabled;
+extern bool musicLoading; // FIX: true while a LoadMusic thread is running
 
 extern int nextChannelPos;
 extern bool musicEnabled;
@@ -80,6 +81,19 @@ extern MusicPlaybackInfo musInfo;
 
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2
 extern SDL_AudioSpec audioDeviceFormat;
+extern SDL_AudioDeviceID audioDevice;
+
+// FIX: Use SDL_LockAudioDevice/SDL_UnlockAudioDevice with the actual device ID.
+// SDL_LockAudio() only locks device 1, but SDL_OpenAudioDevice may return a
+// higher ID (common on UNISOC/Mali devices). Using the wrong lock causes
+// freeMusInfo and LoadMusic to race, preventing music from restarting after
+// StopMusic is called (e.g. re-entering dev menu). Defined here so Audio.hpp
+// inlines (freeMusInfo) can use them without depending on Audio.cpp's macros.
+#define LockAudioDevice()   SDL_LockAudioDevice(audioDevice)
+#define UnlockAudioDevice() SDL_UnlockAudioDevice(audioDevice)
+#else
+#define LockAudioDevice()   ;
+#define UnlockAudioDevice() ;
 #endif
 
 int InitSoundDevice();
@@ -94,7 +108,13 @@ void ProcessAudioMixing(Sint32 *dst, const Sint16 *src, int len, int volume, sby
 inline void freeMusInfo()
 {
     if (musInfo.loaded) {
-        SDL_LockAudio();
+        // FIX: Use LockAudioDevice/UnlockAudioDevice (SDL_LockAudioDevice with
+        // the correct device ID) instead of SDL_LockAudio/SDL_UnlockAudio.
+        // On UNISOC and other devices where SDL_OpenAudioDevice returns ID > 1,
+        // SDL_LockAudio locks the wrong device and the cleanup races with the
+        // audio callback, leaving musInfo in a bad state that prevents music
+        // from restarting after StopMusic (e.g. re-entering dev menu).
+        LockAudioDevice();
 
         if (musInfo.buffer)
             delete[] musInfo.buffer;
@@ -111,7 +131,7 @@ inline void freeMusInfo()
         musInfo.loaded       = false;
         musicStatus          = MUSIC_STOPPED;
 
-        SDL_UnlockAudio();
+        UnlockAudioDevice();
     }
 }
 #else
@@ -122,7 +142,7 @@ void ProcessAudioMixing() {}
 inline void freeMusInfo()
 {
     if (musInfo.loaded) {
-        SDL_LockAudio();
+        LockAudioDevice(); // FIX: use correct device ID, not SDL_LockAudio
 
         if (musInfo.buffer)
             delete[] musInfo.buffer;
@@ -132,7 +152,7 @@ inline void freeMusInfo()
         musInfo.loaded    = false;
         musicStatus       = MUSIC_STOPPED;
 
-        SDL_UnlockAudio();
+        UnlockAudioDevice(); // FIX: use correct device ID, not SDL_UnlockAudio
     }
 }
 #endif

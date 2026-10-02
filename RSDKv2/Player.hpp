@@ -1,7 +1,7 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#define PLAYER_COUNT (0x2)
+#define PLAYER_COUNT (0x4)
 
 enum PlayerAni {
     ANI_STOPPED,
