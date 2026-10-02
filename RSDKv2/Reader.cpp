@@ -1,8 +1,15 @@
-#include "RetroEngine.hpp"
+﻿#include "RetroEngine.hpp"
 #include <string>
 #include <SDL.h>
 
 char binFileName[0x400];
+
+// FIX: Global RAM buffer pointer used by FillFileBuffer during RSV video playback.
+// Set by UpdateVideoFrame before ReadGifPictureData, cleared after.
+// Allows the GIF decoder to read from pre-loaded memory with no file handle.
+byte *VideoMemBuffer     = nullptr;
+int   VideoMemBufferSize = 0;
+int   VideoMemBufferPos  = 0;
 
 char fileName[0x100];
 byte FileBuffer[0x2000];

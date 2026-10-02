@@ -1,4 +1,4 @@
-#include "RetroEngine.hpp"
+﻿#include "RetroEngine.hpp"
 #include <cmath>
 #include <iostream>
 
@@ -21,7 +21,8 @@ ChannelInfo sfxChannels[CHANNEL_COUNT];
 
 MusicPlaybackInfo musInfo;
 
-int trackBuffer = -1;
+int trackBuffer    = -1;
+bool musicLoading  = false; // FIX: prevents spawning multiple LoadMusic threads
 
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2
 SDL_AudioSpec audioDeviceFormat;
@@ -30,8 +31,7 @@ SDL_AudioSpec audioDeviceFormat;
 SDL_AudioDeviceID audioDevice;
 #endif
 
-#define LockAudioDevice()   SDL_LockAudio()
-#define UnlockAudioDevice() SDL_UnlockAudio()
+// LockAudioDevice/UnlockAudioDevice macros are defined in Audio.hpp
 
 #define AUDIO_FREQUENCY (44100)
 #define AUDIO_FORMAT    (AUDIO_S16SYS) /**< Signed 16-bit samples */
@@ -409,6 +409,7 @@ void LoadMusic(void *userdata)
 
     if (trackBuffer < 0 || trackBuffer >= TRACK_COUNT) {
         StopMusic();
+        musicLoading = false; // FIX: clear flag on early exit
         return;
     }
 
@@ -416,6 +417,7 @@ void LoadMusic(void *userdata)
 
     if (!trackPtr->fileName[0]) {
         StopMusic();
+        musicLoading = false; // FIX: clear flag on early exit
         return;
     }
 
@@ -436,10 +438,31 @@ void LoadMusic(void *userdata)
 
         int error = ov_open_callbacks(&musInfo, &musInfo.vorbisFile, NULL, 0, callbacks);
         if (error != 0) {
+            // FIX: ov_open_callbacks failed - fileBuffer may be corrupt from a
+            // previous StopMusic double-free. Free and reload to recover.
+            SDL_Log("LoadMusic: ov_open_callbacks failed (%d), retrying", error);
+            if (musInfo.fileInfo.fileBuffer) {
+                free(musInfo.fileInfo.fileBuffer);
+                musInfo.fileInfo.fileBuffer = nullptr;
+            }
+            musInfo.loaded = false;
+            musicLoading   = false;
+            return;
         }
 
         musInfo.vorbBitstream = -1;
         musInfo.vorbisFile.vi = ov_info(&musInfo.vorbisFile, -1);
+        if (!musInfo.vorbisFile.vi) {
+            SDL_Log("LoadMusic: ov_info returned NULL, aborting");
+            ov_clear(&musInfo.vorbisFile);
+            if (musInfo.fileInfo.fileBuffer) {
+                free(musInfo.fileInfo.fileBuffer);
+                musInfo.fileInfo.fileBuffer = nullptr;
+            }
+            musInfo.loaded = false;
+            musicLoading   = false;
+            return;
+        }
 
 #if RETRO_USING_SDL2
         musInfo.stream = SDL_NewAudioStream(AUDIO_S16, musInfo.vorbisFile.vi->channels, musInfo.vorbisFile.vi->rate, audioDeviceFormat.format,
@@ -462,6 +485,10 @@ void LoadMusic(void *userdata)
         CurrentMusicTrack      = trackBuffer;
         trackBuffer  = -1;
     }
+    // FIX: Always clear musicLoading at end of LoadMusic regardless of success
+    // or failure. If LoadFile2 fails or ov_open_callbacks fails, the flag was
+    // never cleared, permanently blocking future PlayMusic calls this session.
+    musicLoading = false;
 }
 
 void SetMusicTrack(char *filePath, byte trackID, bool loop)
@@ -484,8 +511,18 @@ bool PlayMusic(int track)
         trackBuffer = -1;
         return false;
     }
-    trackBuffer = track;
-    musicStatus = MUSIC_LOADING;
+    // FIX: If a LoadMusic thread is already running, don't spawn another.
+    // Two concurrent LoadMusic threads race each other: the second thread sees
+    // musInfo.loaded=true from the first and calls StopMusic(), killing the
+    // music the first thread just loaded. This caused alternating audio on/off
+    // when PlayMusic is called twice in quick succession (e.g. dev menu replay).
+    if (musicLoading) {
+        UnlockAudioDevice();
+        return false;
+    }
+    trackBuffer  = track;
+    musicStatus  = MUSIC_LOADING;
+    musicLoading = true;
     SDL_CreateThread((SDL_ThreadFunction)LoadMusic, "LoadMusic", NULL);
     UnlockAudioDevice();
     return true;
@@ -513,7 +550,7 @@ void LoadSfx(char *filePath, byte sfxID)
         }
 
 #if RETRO_USING_SDL1 || RETRO_USING_SDL2
-        SDL_LockAudio();
+        LockAudioDevice(); // FIX: use correct device ID, not SDL_LockAudio
         SDL_RWops *src = SDL_RWFromMem(sfx, info.fileSize);
         if (src == NULL) {
             PrintLog("Unable to open sfx: %s", info.fileName);
@@ -553,7 +590,7 @@ void LoadSfx(char *filePath, byte sfxID)
                 }
             }
         }
-        SDL_UnlockAudio();
+        UnlockAudioDevice(); // FIX: use correct device ID, not SDL_UnlockAudio
 #endif
     }
 }
@@ -580,7 +617,10 @@ void PlaySfx(int sfx, bool loop)
 }
 void SetSfxAttributes(int sfx, int loopCount, sbyte pan)
 {
-    LockAudioDevice();
+    // FIX: Search for the channel BEFORE locking. The search only reads sfxID
+    // which is written atomically. This minimises the time the audio device is
+    // locked, preventing SDL's callback watchdog from firing a stream
+    // pause/restart when rings are collected rapidly on slower CPUs (UNISOC).
     int sfxChannel = -1;
     for (int i = 0; i < CHANNEL_COUNT; ++i) {
         if (sfxChannels[i].sfxID == sfx || sfxChannels[i].sfxID == -1) {
@@ -589,8 +629,10 @@ void SetSfxAttributes(int sfx, int loopCount, sbyte pan)
         }
     }
     if (sfxChannel == -1)
-        return; // wasn't found
+        return; // wasn't found - no lock needed, nothing to do
 
+    // Lock only for the write to the channel struct
+    LockAudioDevice();
     // TODO: is this right? should it play an sfx here? without this rings dont play any sfx so I assume it must be?
     ChannelInfo *sfxInfo  = &sfxChannels[sfxChannel];
     sfxInfo->samplePtr    = sfxList[sfx].buffer;

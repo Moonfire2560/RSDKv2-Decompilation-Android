@@ -170,6 +170,7 @@ void ProcessSystemMenu() {
                 ClearGraphicsData();
                 ClearAnimationData();
                 LoadPalette("Data/Palettes/MasterPalette.act", 0, 256);
+                LoadPlayerFromList(0, 0);  // FIX: load player scripts like the normal path does
                 ActiveStageList   = 0;
                 StageMode         = STAGEMODE_LOAD;
                 Engine.GameMode   = ENGINE_MAINGAME;

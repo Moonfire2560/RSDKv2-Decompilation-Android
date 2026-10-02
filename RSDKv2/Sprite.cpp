@@ -1,4 +1,4 @@
-#include "RetroEngine.hpp"
+﻿#include "RetroEngine.hpp"
 
 struct GifDecoder {
     int depth;
@@ -409,8 +409,19 @@ int LoadGFXFile(const char *filePath, byte sheetID) {
     return false;
 }
 int LoadRSVFile(const char *filePath, byte sheetID) {
-    FileInfo info;
-    if (LoadFile(filePath, &info)) {
+    // FIX: Use LoadFile2 to load the entire RSV into VideoFileInfo.fileBuffer
+    // (malloc'd RAM). UpdateVideoFrame reads from RAM via FileRead2(..., true)
+    // so no file handle is ever open during playback, making it immune to
+    // LoadFile() calls from other objects that would otherwise clobber
+    // CFileHandle and corrupt the video stream mid-frame.
+    // Note: LoadFile2 reads raw bytes without XOR decryption when loading from
+    // Data.bin. If the file is encrypted we XOR-decrypt the entire buffer once
+    // here so FileRead2(..., true) can memcpy plain data correctly.
+    if (LoadFile2(filePath, &VideoFileInfo)) {
+        if (VideoFileInfo.encrypted && VideoFileInfo.fileBuffer) {
+            for (int i = 0; i < VideoFileInfo.vFileSize; ++i)
+                VideoFileInfo.fileBuffer[i] ^= 0xFF;
+        }
         GFXSurface *surface = &GfxSurface[sheetID];
         StrCopy(surface->fileName, filePath);
 
@@ -419,22 +430,23 @@ int LoadRSVFile(const char *filePath, byte sheetID) {
 
         byte fileBuffer = 0;
 
-        FileRead(&fileBuffer, 1);
+        FileRead2(&VideoFileInfo, &fileBuffer, 1, true);
         VideoFrameCount = fileBuffer;
-        FileRead(&fileBuffer, 1);
+        FileRead2(&VideoFileInfo, &fileBuffer, 1, true);
         VideoFrameCount += fileBuffer << 8;
 
-        FileRead(&fileBuffer, 1);
+        FileRead2(&VideoFileInfo, &fileBuffer, 1, true);
         VideoWidth = fileBuffer;
-        FileRead(&fileBuffer, 1);
+        FileRead2(&VideoFileInfo, &fileBuffer, 1, true);
         VideoWidth += fileBuffer << 8;
 
-        FileRead(&fileBuffer, 1);
+        FileRead2(&VideoFileInfo, &fileBuffer, 1, true);
         VideoHeight = fileBuffer;
-        FileRead(&fileBuffer, 1);
+        FileRead2(&VideoFileInfo, &fileBuffer, 1, true);
         VideoHeight += fileBuffer << 8;
 
-        VideoFilePos          = (int)GetFilePosition();
+        // Record position after header - this is where frame 0 starts in RAM
+        VideoFilePos          = (int)GetFilePosition2(&VideoFileInfo);
         VideoPlaying          = true;
         surface->width        = VideoWidth;
         surface->height       = VideoHeight;

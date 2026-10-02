@@ -92,8 +92,30 @@ void FileRead(void *dest, int size);
 
 bool ParseVirtualFileSystem(FileInfo *fileInfo);
 
+// FIX: When VideoMemBuffer is set, FillFileBuffer reads from this RAM pointer
+// instead of from CFileHandle. This allows ReadGifPictureData (and its internal
+// ReadGifCode calls) to transparently consume data from the pre-loaded RSV memory
+// buffer without needing a live file handle. Set by UpdateVideoFrame before
+// calling ReadGifPictureData, cleared immediately after.
+extern byte *VideoMemBuffer;
+extern int   VideoMemBufferSize;
+extern int   VideoMemBufferPos;
+
 inline size_t FillFileBuffer()
 {
+    if (VideoMemBuffer) {
+        // Read from RAM instead of file handle - no CFileHandle needed
+        int remaining = VideoMemBufferSize - VideoMemBufferPos;
+        ReadSize = (remaining >= 0x2000) ? 0x2000 : remaining;
+        if (ReadSize > 0) {
+            memcpy(FileBuffer, VideoMemBuffer + VideoMemBufferPos, ReadSize);
+            VideoMemBufferPos += ReadSize;
+        }
+        ReadPos += ReadSize;
+        BufferPosition = 0;
+        return ReadSize;
+    }
+
     if (ReadPos + 0x2000 <= FileSize)
         ReadSize = 0x2000;
     else 

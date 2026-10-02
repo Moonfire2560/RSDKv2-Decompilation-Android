@@ -1,4 +1,4 @@
-#include "RetroEngine.hpp"
+﻿#include "RetroEngine.hpp"
 
 
 int SCREEN_XSIZE   = 320;
@@ -158,6 +158,22 @@ if (!Engine.window) {
 
     OBJECT_BORDER_X2 = SCREEN_XSIZE + 0x80;
     // OBJECT_BORDER_Y2 = SCREEN_YSIZE + 0x100;
+
+#if RETRO_PLATFORM == RETRO_ANDROID
+    // FIX: Prime the SDL renderer with 8 cleared frames before gameplay begins.
+    // On Android, the OpenGL ES context is not fully initialized when
+    // SDL_CreateRenderer returns. Submitting blank frames gives the GPU driver
+    // time to complete pipeline setup before the intro cutscene renders.
+    // Without this, uninitialized VRAM (magenta) appears on cold launch.
+    // 8 frames (133ms at 60fps) is invisible to the player but sufficient for
+    // both Adreno (fast init) and Mali-G52 (slower init, e.g. UNISOC T610)
+    // to complete initialization reliably across all tested Android devices.
+    for (int i = 0; i < 8; ++i) {
+        SDL_SetRenderDrawColor(Engine.renderer, 0, 0, 0, 255);
+        SDL_RenderClear(Engine.renderer);
+        SDL_RenderPresent(Engine.renderer);
+    }
+#endif
 
     return 1;
 }
