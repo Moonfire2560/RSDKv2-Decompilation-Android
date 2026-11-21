@@ -1,8 +1,44 @@
-# RSDKv2 Decompilation
+# RSDKv2 Decompilation (Android Port)
 
-A complete decompilation of the Retro-Sonic Engine v2.
+An Android port of the [RSDKv2 decompilation](https://github.com/RSDKModding/RSDKv2-Decompilation) by RSDKModding, a complete decompilation of the Retro-Sonic Engine v2. It runs the Sonic Nexus 2008 demo.
 
-Without assets from the Sonic Nexus 2008 demo, this decompilation will not run. You can download the game [here](https://info.sonicretro.org/Sonic_Nexus).
+Download the latest APK from the [Releases page](https://github.com/Moonfire2560/RSDKv2-Decompilation-Android/releases).
+
+# Files you need
+
+This port does **not** include any game files. You must supply `Data.bin` from your own copy of the Sonic Nexus 2008 demo. You can find information about the game [here](https://info.sonicretro.org/Sonic_Nexus).
+
+Put it here on your device's internal storage:
+
+```
+Internal storage (root)
+└── RSDK
+    └── v2
+        └── Data.bin
+```
+
+Full path: `/sdcard/RSDK/v2/Data.bin`
+
+1. Open your file manager and go to the root of internal storage.
+2. Create a folder named `RSDK`, and inside it a folder named `v2`. (If you've used the RSDKv3, v4, or v5 decompilations, `RSDK` may already exist, so just add `v2` inside it.)
+3. Copy `Data.bin` into `RSDK/v2/`.
+4. Connect a gamepad (Bluetooth or built-in) and launch the game.
+
+Optional: widescreen mods for playing in 16:9.
+
+# Supported devices
+
+Supports `armeabi-v7a` and `arm64` architectures. The game is very lightweight, so virtually any device can run it smoothly.
+
+Tested on: Retroid Pocket 2S, NVIDIA Shield 2019 Pro, Retroid Pocket Flip 2, AYN Odin 3, Fire Stick 4K Plus.
+
+---
+
+# About the decompilation
+
+The rest of this README is from the original RSDKv2 decompilation project.
+
+Without assets from the Sonic Nexus 2008 demo, this decompilation will not run.
 
 # Additional Tweaks
 * Added a built in mod loader, allowing to easily create and play mods.
@@ -75,6 +111,9 @@ Because these branches are unofficial, we can't provide support for them and the
 ## Other Platforms
 Currently the only supported platforms are the ones listed above, however the backend uses libogg, libvorbis, & SDL2 to power it, so the codebase is very multiplatform.
 If you're able to, you can clone this repo and port it to a platform not on the list.
+
+# Contact:
+Join the [Retro Engine Modding Discord Server](https://dc.railgun.works/retroengine) for any extra questions you may need to know about the decompilation or modding it.
 
 # Contact:
 Join the [Retro Engine Modding Discord Server](https://dc.railgun.works/retroengine) for any extra questions you may need to know about the decompilation or modding it.
